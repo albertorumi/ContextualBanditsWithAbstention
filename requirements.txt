@@ -7,4 +7,5 @@ scipy>=1.10.0
 scikit-learn>=1.2.0
 jax>=0.4.0
 jaxlib>=0.4.0
-tqdm>=4.60.0
+tqdm>=4.60.0torch>=2.0.0
+dgl>=2.0.0
