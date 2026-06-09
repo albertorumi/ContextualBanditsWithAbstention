@@ -7,8 +7,8 @@ import math
 from tqdm.auto import tqdm
 sys.path.append("../../convgraph")
 sys.path.append("../../convgraph/src")
-from winnow import Winnow, WinnowSpaceEff, WinnowStephen
-from utils import compute_node_to_bases, find_bases
+# from winnow import Winnow, WinnowSpaceEff, WinnowStephen
+from src.utils import compute_node_to_bases, find_bases
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 from itertools import compress

@@ -4,8 +4,6 @@ import networkx as nx
 import warnings
 from src.utils import wilson_random_spanning_tree
 
-import rst
-
 class RST_Fabio:
     def __init__(self, graph, k, seed=42):
         '''

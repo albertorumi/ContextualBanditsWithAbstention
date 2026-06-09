@@ -1,6 +1,6 @@
 import numpy as np
-from tree_utils import create_perfect_binary_tree, nodes_at_depth, find_parents
-from utils import wilson_random_spanning_tree
+from src.tree_utils import create_perfect_binary_tree, nodes_at_depth, find_parents
+from src.utils import wilson_random_spanning_tree
 import networkx as nx
 import time
 from tqdm.auto import tqdm
