@@ -8,10 +8,8 @@ class OSE4:
         bases_list : list of bases
         K : number of active actions (without abstention)
         """
-        #print("bases_list: ",bases_list)
         self.N = len(bases_list)
         self.rng = np.random.default_rng(seed=seed)
-        # FIXME : ASK STEPHEN for c_init value and eta
         self.c_init = 1 / self.N
         self.eta = eta
         self.bases_list = bases_list
@@ -22,7 +20,6 @@ class OSE4:
         self.w = {
             label : np.full(self.N, self.c_init) for label in range(K)
         }
-        #print(sum(self.w[0]))
 
     def predict(self, node_id, node_to_base):
         '''
@@ -35,43 +32,27 @@ class OSE4:
             # Will also return Abstention
             for label in range(self.K):
                 self.w[label][active_bases_indexes] /= mu
-            mu = 1    
+            mu = 1
             dist_actions = np.array([np.sum(specialists[active_bases_indexes]) for _, specialists in self.w.items()])
-            # print(dist_actions)
-        #rand = self.rng.random()
-        #if rand <= 1 - mu:
-        #    # Abstention case, noise class is indexed by -1
-        #    return -1
+        # Abstention (indexed by -1) gets the remaining probability mass 1 - mu
         dist_actions = np.concatenate((np.array([1 - mu]),dist_actions))
-        # if node_id == 1:
-        #     print("POINT: ", node_id)
-        #     print("MU", mu)
-        #     print("DIST: ", dist_actions)
         res = self.rng.choice(np.arange(-1, self.K), p = dist_actions)
         return res
 
     def update(self, node_id, predicted, loss, node_to_base, verbose = False):
         '''
-        Update based on the received loss
+        Exponential-weights update of the active bases of the played action,
+        importance-weighted by the probability of playing that action.
         '''
         if predicted == -1:
             # I've abstained so I don't get rewards or losses
             return
         active_bases_indexes = list(node_to_base[node_id])
-        # c = set(np.arange(self.N))
-        # not_active_indx = np.array(list(c.difference(active_bases_indexes)))
-        # assert len(not_active_indx) + len(active_bases_indexes) == self.N
-        sums = {k : np.sum(specialists[active_bases_indexes]) for k, specialists in self.w.items()}
-        Q = set([k for k,s in sums.items() if s<self.eta])
-        # for k in Q:
-        #     self.w[k] = self.w[k] * np.exp(self.eta)
-        
-        for k in range(self.K):
-            if k in Q:
-                continue
-            else:
-                p = sums[k]
-                self.w[predicted][active_bases_indexes] = self.w[predicted][active_bases_indexes]*np.exp(self.eta * (loss / p))
+        p = np.sum(self.w[predicted][active_bases_indexes])
+        if p < self.eta:
+            # Quiescent action: skip the update so the importance weight stays bounded by 1/eta
+            return
+        self.w[predicted][active_bases_indexes] = self.w[predicted][active_bases_indexes]*np.exp(self.eta * (loss / p))
                 
 
 def train_bandit(graph, 
@@ -100,11 +81,8 @@ def train_bandit(graph,
     unlabeled_nodes = set(graph.nodes)
     # For each trial
     for i in tqdm(range(T), desc=f"Training {name}", disable=disable_tqdm_train):
-        # if not unlabeled_nodes:
-        #     break
-        # Draw an unlabeled node and its label
+        # Draw a node (with replacement) and its label
         x_t = rng.choice(list(unlabeled_nodes))
-        # unlabeled_nodes.remove(x_t)
         y_t = graph.nodes[x_t]['label']
         
         # Predict
@@ -141,7 +119,6 @@ def train_bandit(graph,
         print("Time for predictions: ", temp_pred)
         print("Time for updates: ", temp_upd)
         print(f"Training time for {name} : {temp_pred + temp_upd}")
-    # print(f"TIES {name}: ", n_b)
     if debug:
         return (tot_mistakes, results), ose4
     return tot_mistakes, results

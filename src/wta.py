@@ -22,10 +22,6 @@ class RST_Fabio:
         '''
         Unweighted implementation of knn on graph
         '''
-        # if self.rst_local.nodes[node]['label']:
-        #     warnings.warn("Already discovered node...")
-        #     return self.rst_local.nodes[node]['label']
-        
         # Find index of the node...
         ind_l = ind_r = 0
         for i, n in enumerate(self.dfv):

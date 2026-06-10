@@ -13,10 +13,9 @@ class ContSimInfo:
         bases_list : list of bases
         K : number of active actions
         """
-        # WEIRD PARAMETERS
+        # Constants c and d regulating the per-ball budget T_0
         self.c_y = c_y
         self.d_y = d_y
-        # STANDARD
         self.K = K
         self.graph = graph
         self.distance = distance
@@ -89,25 +88,6 @@ class Distances:
         return nx.shortest_path_length(self.graph, source = x, target = y)/self.diameter
 
 
-
-# def train_cont(testg, K_classes):
-#     #testg = create_multi_class_clique(n_clique=300,classes=4, n_nodes_noise=600, rand_inst=rand_inst, shading = 0.3)
-#     dist = Distances(testg)
-#     learner = ContSimInfo(testg, dist.custom_sp_dist, K_classes + 1)
-
-#     res = 0
-#     rr = []
-#     for n in tqdm(range(len(testg))):
-#         action = learner.predict(n)
-#         action_rr = action - 1
-#         loss = 0 if action_rr == testg.nodes[n]['label'] else 1
-        
-#         res += loss
-#         rr += [res]
-        
-#         learner.update(n, action, loss)
-#     return res, rr
-
 def train_cont(graph, T, K_classes, c_y = 10, d_y = 5, eta_exp3 = None, seed = 42, verbose = True, name='ContSim', loss_percentage = 1.0,
                 disable_tqdm_train = False, debug = False):
     '''
@@ -126,11 +106,8 @@ def train_cont(graph, T, K_classes, c_y = 10, d_y = 5, eta_exp3 = None, seed = 4
     unlabeled_nodes = set(graph.nodes)
     # For each trial
     for i in tqdm(range(T), desc=f"Training {name}", disable=disable_tqdm_train):
-        # if not unlabeled_nodes:
-        #     break
-        # Draw an unlabeled node and its label
+        # Draw a node (with replacement) and its label
         x_t = rng.choice(list(unlabeled_nodes))
-        # unlabeled_nodes.remove(x_t)
         y_t = graph.nodes[x_t]['label']
         
         # Predict
@@ -155,7 +132,6 @@ def train_cont(graph, T, K_classes, c_y = 10, d_y = 5, eta_exp3 = None, seed = 4
         print("Time for predictions: ", temp_pred)
         print("Time for updates: ", temp_upd)
         print(f"Training time for {name} : {temp_pred + temp_upd}")
-    # print(f"TIES {name}: ", n_b)
     if debug:
         return (tot_mistakes, results), learner
     return tot_mistakes, results

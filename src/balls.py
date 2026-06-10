@@ -1,7 +1,6 @@
 
 import networkx as nx
 import numpy as np
-import jax.numpy as jnp
 from src.utils import compute_pinv, compute_edp_mat
 
 class BallDistances:

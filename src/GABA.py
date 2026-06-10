@@ -41,16 +41,11 @@ class GABA:
         # 3
         parents = find_parents(self.support_tree, user_node)
         parents_values = np.array([v.value for v in parents])
-        
-        # print("Parents: ", parents_values)
-        # print("MU: ", self.mu[parents_values])
-        # print("THETAMUL", self.theta[parents_values][:,self.action_tree.value])
 
         probs = self.mu[parents_values] * self.theta[parents_values][:,self.action_tree.value]
         norm = np.sum(probs)
         probs = probs / norm
-        
-        # print("P:", probs)
+
         delta_t = self.rng.choice(parents_values, p = probs)
         
         # 4
@@ -71,9 +66,6 @@ class GABA:
         return xi.value
     
     def update(self, user_node, played, loss):
-        temp_mu = np.copy(self.mu)
-        temp_theta = np.copy(self.theta)
-        
         parents = find_parents(self.support_tree, user_node)
         parents_values = np.array([v.value for v in parents])
         psi_t = np.sum(self.mu[parents_values] * self.theta[parents_values][:,self.action_tree.value])
@@ -82,15 +74,10 @@ class GABA:
             lambda_t = 0.0
         else:
             lambda_t = np.exp(-self.eta * loss * psi_t/rho_t)
-        # print("psi_t: ", psi_t)
-        # print("rho_t: ", rho_t)
-        # print("psi_t/rho_t: ", psi_t/rho_t)
-        # print("lambda_t: ", lambda_t)
-        # print("mu factor: ", psi_t / (psi_t - (1 - lambda_t)*rho_t))
         # a
         self.mu[parents_values] = self.mu[parents_values] * psi_t / (psi_t - (1 - lambda_t)*rho_t)
+        # clip to avoid overflow when weights diverge
         self.mu[parents_values] = np.clip(self.mu[parents_values],None, 1e10)
-        # np.where(np.isinf(self.mu), ,self.mu)
 
         for n in parents_values:
             self.theta[n][played] = lambda_t * self.theta[n][played]
@@ -107,8 +94,6 @@ class GABA:
         h = int(np.ceil(np.log2(len(dfv))))
         n_nodes = 2**(h+1) - 1
         remaining = list(range(len(dfv), n_nodes))
-        #pad = [None for _ in range(n_nodes - len(dfv))]
-        #n_list = dfv + pad
         result = dfv + remaining
         result.reverse()
         root = create_perfect_binary_tree(result)
@@ -134,11 +119,8 @@ def train_gaba(graph, T, K_classes, eta = None, seed = 42, verbose = True, name=
     unlabeled_nodes = set(graph.nodes)
     # For each trial
     for i in tqdm(range(T), desc=f"Training {name}", disable=disable_tqdm_train):
-        # if not unlabeled_nodes:
-        #     break
-        # Draw an unlabeled node and its label
+        # Draw a node (with replacement) and its label
         x_t = rng.choice(list(unlabeled_nodes))
-        # unlabeled_nodes.remove(x_t)
         y_t = graph.nodes[x_t]['label']
         
         # Predict
@@ -146,12 +128,7 @@ def train_gaba(graph, T, K_classes, eta = None, seed = 42, verbose = True, name=
         y_hat_t = gaba.predict(x_t)
         y_hat_t_ACTION = y_hat_t - 1
         temp_pred += time.time() - temp
-        
-        # Verbose notifications
-        # if verbose:
-        #     print(f"\nTime-step {i}| node {x_t}| label: {y_t}")
-        #     print(f"Predicted: {y_hat_t}")
-        
+
         # Mistake count
         if y_hat_t_ACTION != y_t:
             tot_mistakes += 1
@@ -170,7 +147,6 @@ def train_gaba(graph, T, K_classes, eta = None, seed = 42, verbose = True, name=
         print("Time for predictions: ", temp_pred)
         print("Time for updates: ", temp_upd)
         print(f"Training time for {name} : {temp_pred + temp_upd}")
-    # print(f"TIES {name}: ", n_b)
     if debug:
         return (tot_mistakes, results), gaba
     return tot_mistakes, results

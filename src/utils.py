@@ -195,24 +195,16 @@ def wilson_random_spanning_tree(graph, seed = 42):
     curr_node = not_visited.pop()
     visited.add(curr_node)
 
-    # print("start from: ", curr_node)
-
-    i = 0
-
     while not_visited:
         # Random chose a node in not visited 
         node_from = random.choice(list(not_visited))
-
-        #print("NODE FROM: ", node_from)
         not_visited.remove(node_from)
 
         lerw = cycle_erased_trajectory(graph, node_from, visited)
         
         visited.add(node_from)
-        #print("LEWR: ", lerw)
         not_visited.add(lerw[-1])
         for n in lerw[1:]:
-            #print("VISITING ", n, " FROM ", node_from)
             not_visited.remove(n)
             visited.add(n)
             tree.add_edge(node_from, n)

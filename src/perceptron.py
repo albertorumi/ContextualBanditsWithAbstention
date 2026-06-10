@@ -1,5 +1,4 @@
 import numpy as np
-import jax.numpy as jnp
 
 class Perceptron_on_graph:
     def __init__(self, L_pinv):
@@ -11,12 +10,9 @@ class Perceptron_on_graph:
     
     def predict(self, node):
         '''
-        Unweighted implementation of knn on graph
+        Predict the binary label (+1/-1) of the node.
         '''
-        #print(self.L_pinv[ind])
-        #print(self.w.T)
         res = np.dot(self.w.T, self.L_pinv[node])
-        #print(res)
         return 1 if res >= 0 else -1
     
     def update(self, node, predicted, true_label):

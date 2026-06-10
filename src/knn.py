@@ -37,7 +37,6 @@ class KNN_on_graph:
                 # warnings.warn(f"Using less neighbors for node {node}, tot used: {self.k_n - k_n}")
                 if vote_count:
                     max_key = max(vote_count, key=lambda k: vote_count[k])
-                    # print(vote_count)
                     return max_key
                 else:
                     random_pred = self.random_instance.randint(0, self.k)
@@ -54,7 +53,6 @@ class KNN_on_graph:
         # Return max
         if vote_count:
             max_key = max(vote_count, key=lambda k: vote_count[k])
-            # print(vote_count)
             return max_key
         random_pred = self.random_instance.randint(0, self.k)
         return random_pred

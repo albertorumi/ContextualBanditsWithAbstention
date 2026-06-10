@@ -77,7 +77,6 @@ def train_exp3(graph, T, K_classes, eta = 0.01, seed = 42, verbose = True, name=
         print("Time for predictions: ", temp_pred)
         print("Time for updates: ", temp_upd)
         print(f"Training time for {name} : {temp_pred + temp_upd}")
-    # print(f"TIES {name}: ", n_b)
     if debug:
         return (tot_mistakes, results), exp3_dict
     return tot_mistakes, results, res

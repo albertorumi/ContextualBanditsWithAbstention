@@ -37,17 +37,14 @@ class WinnowSpaceEff:
         
         self.N = len(self.bases_list)
         self.w = np.full(self.N, self.lmbd)
-        # self.w = [self.lmbd for _ in range(self.N)]
 
     def predict(self, node_id):
         '''
         Predict output based on internal state.
         '''
         active_bases_indexes = list(find_bases(self.bases_list, node_id))
-        # res = sum([self.w[ind] for ind in active_bases_indexes])
         res = np.sum(self.w[active_bases_indexes])
-        # res_curr = 1 if res >= 1/2 else 0
-        # Leave the check to the train algorithm to brake ties correclty
+        # Thresholding and tie-breaking are left to the training loop
         return res
 
     def update(self, node_id, predicted, true_label, verbose = False):
@@ -74,17 +71,14 @@ class WinnowStephen:
         
         self.N = len(self.bases_list)
         self.w = np.full(self.N, self.lmbd)
-        # self.w = [self.lmbd for _ in range(self.N)]
 
     def predict(self, node_id, node_to_base):
         '''
         Predict output based on internal state.
         '''
         active_bases_indexes = node_to_base[node_id]
-        # res = sum([self.w[ind] for ind in active_bases_indexes])
         res = np.sum(self.w[list(active_bases_indexes)])
-        # res_curr = 1 if res >= 1/2 else 0
-        # Leave the check to the train algorithm to brake ties correclty
+        # Thresholding and tie-breaking are left to the training loop
         return res
 
     def update(self, node_id, predicted, true_label, node_to_base, verbose = False):
