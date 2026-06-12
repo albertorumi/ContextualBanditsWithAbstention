@@ -2,6 +2,10 @@ import numpy as np
 from src.utils import find_bases
 
 class Winnow:
+    '''
+    Classic Winnow over the bases: predict 1 if the active weight mass reaches
+    the threshold N, and double/halve the active weights on mistakes.
+    '''
     def __init__(self, bases_list):
         self.bases_list = bases_list
         self.N = len(self.bases_list)
@@ -29,6 +33,11 @@ class Winnow:
             print("Updated: ", self.w)
             
 class WinnowSpaceEff:
+    '''
+    Same algorithm and parameters as WinnowStephen, but recomputes the active
+    bases on the fly (find_bases) instead of using a precomputed node-to-bases
+    map: less memory, more time per round.
+    '''
     def __init__(self, bases_list, K, k, N, m):
         self.lmbd = k /(K*N)
         self.eta = np.sqrt(k * np.log(K * N) / m)
@@ -63,6 +72,11 @@ class WinnowSpaceEff:
             print("Updated: ", self.w)
 
 class WinnowStephen:
+    '''
+    Winnow with the parameter setting from Stephen's analysis: initial weights
+    lambda = k/(K*N) and learning rate eta = sqrt(k * log(K*N) / m). Exponential
+    (rather than factor-2) multiplicative updates on mistakes.
+    '''
     def __init__(self, bases_list, K, k, N, m):
         self.lmbd = k /(K*N)
         self.eta = np.sqrt(k * np.log(K * N) / m)

@@ -3,6 +3,10 @@ import time
 from tqdm.auto import tqdm
 
 class EXP3:
+    '''
+    Standard EXP3: multiplicative weights over K arms with importance-weighted
+    losses (loss / probability of the played arm).
+    '''
     def __init__(self, K, T = None, eta = 0.01, seed = 42):
         self.rng = np.random.default_rng(seed)
         self.K = K
@@ -35,7 +39,9 @@ class EXP3:
 def train_exp3(graph, T, K_classes, eta = 0.01, seed = 42, verbose = True, name='EXP3', loss_percentage = 1.0,
                 disable_tqdm_train = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Baseline with no sharing between users: one independent EXP3 instance per
+    node, so every user is learned from scratch. Arms are shifted by -1, so with
+    K+1 arms (as in the notebooks) arm 0 plays the role of abstention.
     '''
     temp_pred = 0
     temp_upd = 0

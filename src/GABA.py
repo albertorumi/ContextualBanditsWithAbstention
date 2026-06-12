@@ -6,6 +6,12 @@ import time
 from tqdm.auto import tqdm
 
 class GABA:
+    '''
+    Graph-bandit baseline. Linearizes the graph by a DFS of a uniform random
+    spanning tree and builds a perfect binary "support tree" over that order, so
+    specialists are contiguous DFS intervals. Each specialist keeps a weight mu
+    and a binary action tree theta used to sample actions hierarchically.
+    '''
     def __init__(self, graph, K, eta = 0.01, seed = 42):
         self.eta = eta
         self.rng = np.random.default_rng(seed)
@@ -38,6 +44,11 @@ class GABA:
         self.xi = []
         
     def predict(self, user_node):
+        '''
+        Sample a specialist among the ancestors of the user's leaf (by mu times
+        total action mass), then descend its action tree sampling left/right
+        proportionally to theta; the reached leaf is the played action.
+        '''
         # 3
         parents = find_parents(self.support_tree, user_node)
         parents_values = np.array([v.value for v in parents])
@@ -66,6 +77,12 @@ class GABA:
         return xi.value
     
     def update(self, user_node, played, loss):
+        '''
+        Importance-weighted multiplicative update of the played action's theta
+        on every ancestor specialist, then rescale mu so the specialists'
+        marginals stay consistent. Internal action-tree sums are recomputed
+        along the sampled path.
+        '''
         parents = find_parents(self.support_tree, user_node)
         parents_values = np.array([v.value for v in parents])
         psi_t = np.sum(self.mu[parents_values] * self.theta[parents_values][:,self.action_tree.value])
@@ -89,6 +106,10 @@ class GABA:
             # 9 skip modifications
                 
     def constructBST(self, graph, seed = 42):
+        '''
+        Support tree: DFS preorder of a Wilson (uniform) random spanning tree,
+        padded with dummy nodes up to a perfect binary tree.
+        '''
         rst = wilson_random_spanning_tree(graph, seed=seed)
         dfv = list(nx.dfs_preorder_nodes(rst))
         h = int(np.ceil(np.log2(len(dfv))))
@@ -103,7 +124,9 @@ class GABA:
 def train_gaba(graph, T, K_classes, eta = None, seed = 42, verbose = True, name='GABA', loss_percentage = 1.0,
                 disable_tqdm_train = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Run GABA for T rounds with 0/1 losses. Sampled arms are shifted by -1, so
+    when called with K+1 arms (as in the notebooks) arm 0 plays the role of
+    abstention -- an ordinary arm here, with no special structure.
     '''
     temp_pred = 0
     temp_upd = 0

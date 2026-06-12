@@ -20,6 +20,8 @@ def find_bases(bases_list, node_id):
 def compute_edp_mat(graph, disable = False):
     '''
     Edge disjoint path distance (1/edp) matrix. Assumption on undirected graphs!
+    The number of edge-disjoint u-v paths equals the u-v min cut, read off the
+    Gomory-Hu tree as the minimum edge weight on the tree path from u to v.
     '''
     gom_tree = nx.gomory_hu_tree(graph)
     gom_tree_path = dict(nx.shortest_path(gom_tree, weight="weight"))
@@ -137,6 +139,10 @@ def compute_pinv(graph, b = 0, c = 0):
     return res.tolist()
 
 def compute_node_to_bases(graph, bases_list, disable = False):
+    '''
+    Precompute node -> indexes of the bases containing it: the lookup map used
+    by every predict/update, so the per-round cost doesn't scan all bases.
+    '''
     # Compute node to bases as initialization step
     node_to_bases_ind = dict()
     for node in tqdm(graph.nodes, desc=f"Computing node to base", disable=disable):
@@ -186,6 +192,11 @@ def cycle_erased_trajectory(graph, source, destinations):
     return None
 
 def wilson_random_spanning_tree(graph, seed = 42):
+    '''
+    Uniform random spanning tree via Wilson's algorithm: grow the tree by
+    attaching loop-erased random walks from unvisited nodes. Used by GABA and
+    the RST baseline.
+    '''
     random.seed(seed)
     visited = set()
     not_visited = set(list(graph.nodes))
@@ -270,6 +281,10 @@ def relabel_graph(graph):
     return graph
 
 def create_noise_graph(graph, labels_to_noise):
+    '''
+    Relabel the given classes as -1 (noise): how real datasets (Cora, LastFM)
+    get their abstention-optimal regions.
+    '''
     G = graph.copy()
     for n in G.nodes:
         if G.nodes[n]['label'] in labels_to_noise:
@@ -446,6 +461,8 @@ def create_epsilon_graph_from_sample(dataset_test, labels, epsilon, metric='eucl
 def create_gaussian_graph(n_corner, n_center, sigma_corner, sigma_center, n_neighbors=0, epsilon = 0, seed = 42):
     """
     Return the square gaussian graph (not necessarly connected) in both NN and Epsilon formats.
+    Four Gaussian clusters at the corners (labels 0-3) plus a center cloud
+    labeled -1 (noise/abstention-optimal), turned into kNN and epsilon graphs.
     """
     np.random.seed(seed)
     mu_corner1 = [1, 1]
@@ -472,6 +489,11 @@ def create_gaussian_graph(n_corner, n_center, sigma_corner, sigma_center, n_neig
     return graph_nn, graph_eps
 
 def create_multi_class_clique(n_clique, classes, n_nodes_noise, rand_inst, shading = 0.0):
+    '''
+    Synthetic benchmark: one clique of n_clique nodes per class, plus noise
+    nodes labeled -1 (abstention is the correct answer there) attached to random
+    nodes with probability shading / sqrt(n_clique * classes).
+    '''
     clique = []
     G = nx.Graph()
     for i in range(classes):

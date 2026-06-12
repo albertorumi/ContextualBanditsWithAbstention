@@ -11,6 +11,11 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 from itertools import compress
 
 def retrieve_interval_bases(graph, disable = False):
+    '''
+    Path-based bases: for every node pair (s, t), the set of nodes lying on some
+    shortest s-t path (dist[s,v] + dist[v,t] == dist[s,t]). All-pairs distances
+    via Floyd-Warshall.
+    '''
     bases = set()
     dist = nx.floyd_warshall_numpy(graph)
     n = graph.number_of_nodes()
@@ -34,12 +39,20 @@ def retrieve_st_bases(graph):
     return list(bases)
 
 def retrieve_lvc_bases(graph, disable = False):
+    '''
+    Community-based bases: the Louvain communities of the graph, as they are.
+    '''
     bases_list = nx.community.louvain_communities(graph)
     node_to_bases = compute_node_to_bases(graph, bases_list, disable=disable)
 
     return bases_list, node_to_bases
 
 def retrieve_lvc_bases_peeling(graph, disable=False):
+    '''
+    Louvain communities plus "peeled" versions: from each community, repeatedly
+    remove the lowest-degree node and keep every intermediate set, so we also get
+    nested tighter cores. Singletons are added as an expressivity fallback.
+    '''
     lvc = nx.community.louvain_communities(graph)
     # Peeling
     res = set()
@@ -83,6 +96,10 @@ def extract_levels(row_clusters, labels):
     return res
 
 def retrieve_hier_bases(graph, plot_dendrogram = False, disable=False):
+    '''
+    Hierarchical-clustering bases: Ward linkage on the shortest-path distance
+    matrix; every level of the dendrogram becomes a base, plus singletons.
+    '''
     R = nx.floyd_warshall_numpy(graph)
     RR = squareform(R)
     Z = linkage(RR, method='ward')
@@ -98,6 +115,10 @@ def retrieve_hier_bases(graph, plot_dendrogram = False, disable=False):
     return bases_list, node_to_bases
 
 def get_log_balls_for_vertex(d_mat, node, tolerance=0.0):
+    '''
+    Like get_balls_for_vertex, but keeps only ~log2(n) balls per node (at sizes
+    2^k - 1) to control the total number of bases.
+    '''
     starting_node_ind = node
     ball_bases = set()
     # Sort the distance matrix based on the current node
@@ -126,6 +147,11 @@ def get_log_balls_for_vertex(d_mat, node, tolerance=0.0):
     return list(ball_bases)
 
 def get_balls_for_vertex(d_mat, node, tolerance=0.0):
+    '''
+    Nested balls of increasing radius around the node: scan all nodes sorted by
+    distance and snapshot the current set every time the distance increases by
+    more than the tolerance.
+    '''
     starting_node_ind = node
     ball_bases = set()
     # Sort the distance matrix based on the current node
@@ -146,6 +172,11 @@ def get_balls_for_vertex(d_mat, node, tolerance=0.0):
     return list(ball_bases)
 
 def retrieve_ball_bases(graph, distance, n2b = True, tolerance = 0.0, symmetric = False, disable = False, log_balls = False):
+    '''
+    Geometric bases: compute the full distance matrix under the given distance
+    function (shortest path, effective resistance, or edge-disjoint paths from
+    BallDistances), then collect the nested balls around every node.
+    '''
     d_mat = np.zeros((len(graph.nodes), len(graph.nodes)))
     for node_i in tqdm(graph.nodes, desc='Computing distance matrix', disable=disable):
         for node_j in graph.nodes:
@@ -174,7 +205,10 @@ def retrieve_ball_bases(graph, distance, n2b = True, tolerance = 0.0, symmetric 
 
 def train_model(graph, bases_list, node_to_bases_ind, T, K_classes,  k_winnow = 1, epochs = 1, verbose = True, name='', seed = 42, disable_tqdm_train = False, disable_tqdm_epochs = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Full-information counterpart of CBA: one Winnow (WinnowStephen parameters)
+    per class; predict the highest-confidence class if any confidence >= 1/2,
+    otherwise abstain (-1). The true label is revealed every round and all K
+    Winnows are updated. Nodes are drawn without replacement.
     '''
     random_instance = random.Random(seed)
     random_instance.seed(seed)
@@ -246,7 +280,8 @@ def train_model(graph, bases_list, node_to_bases_ind, T, K_classes,  k_winnow = 
 
 def train_model_oldW(graph, bases_list, node_to_bases_ind, T, K_classes, epochs = 1, verbose = True, name='', seed = 42, disable_tqdm_train = False, disable_tqdm_epochs = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Same loop as train_model but with the classic Winnow (threshold N, weights
+    doubled/halved on mistakes) and random tie-breaking among confident classes.
     '''
     random_instance = random.Random(seed)
     random_instance.seed(seed)
@@ -315,7 +350,8 @@ def train_model_oldW(graph, bases_list, node_to_bases_ind, T, K_classes, epochs 
 
 def train_model_space_efficient(graph, bases_list, T, K_classes, epochs = 1, verbose = True, name='', seed = 42, disable_tqdm_train = False, disable_tqdm_epochs = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Same loop as train_model but with WinnowSpaceEff, which recomputes the active
+    bases on the fly instead of storing the node-to-bases map: less memory, more time.
     '''
     random_instance = random.Random(seed)
     random_instance.seed(seed)

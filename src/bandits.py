@@ -3,6 +3,12 @@ from tqdm.auto import tqdm
 import time
 
 class OSE4:
+    '''
+    CBA: exponential weights over (base, action) specialists, with abstention.
+    Each base keeps one weight per action; on the current node, the total weight
+    of its active bases gives the action probabilities, and the missing mass
+    1 - mu is played as abstention.
+    '''
     def __init__(self, bases_list, K, eta = 0.01, seed = 42):
         """
         bases_list : list of bases
@@ -23,7 +29,9 @@ class OSE4:
 
     def predict(self, node_id, node_to_base):
         '''
-        Predict output based on internal state.
+        Sample an action for the node: per-action probability = total weight of
+        its active bases; abstention gets the leftover mass 1 - mu. If mu > 1
+        (safe zone), project the active weights back to total mass 1 first.
         '''
         active_bases_indexes = list(node_to_base[node_id])
         dist_actions = np.array([np.sum(specialists[active_bases_indexes]) for _, specialists in self.w.items()])
@@ -67,7 +75,9 @@ def train_bandit(graph,
                 name='',
                 disable_tqdm_train = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Run CBA for T rounds: draw a node uniformly (with replacement), predict, and
+    update with reward +1/-1 for a correct/wrong action, 0 for abstention.
+    Nodes labeled -1 are noise, so abstaining on them counts as correct.
     '''
     temp_pred = 0
     temp_upd = 0

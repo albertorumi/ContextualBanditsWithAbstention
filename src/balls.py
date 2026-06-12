@@ -4,6 +4,11 @@ import numpy as np
 from src.utils import compute_pinv, compute_edp_mat
 
 class BallDistances:
+    '''
+    The three graph distances used to build ball bases. Each underlying matrix
+    (shortest paths, Laplacian pseudoinverse, edge-disjoint paths) is computed
+    lazily on first use unless requested at construction.
+    '''
     def __init__(self, graph, initialize_pinv = False, initialize_sp = False, initialize_edp = False, disable = False):
         self.graph = graph
         self.initialize_pinv = initialize_pinv
@@ -21,12 +26,21 @@ class BallDistances:
             self.edp_mat = compute_edp_mat(self.graph, disable = self.disable)
 
     def d1_ball_distance(self, u, v):
+        '''
+        Connectivity distance: 1 / (number of edge-disjoint u-v paths),
+        computed via the Gomory-Hu tree. Many independent routes = close.
+        '''
         if not self.initialize_edp:
             self.initialize_edp = True
             self.edp_mat = compute_edp_mat(self.graph, disable=self.disable) 
         return self.edp_mat[u][v]
 
     def d2_ball_distance(self, source, target):
+        '''
+        Effective resistance between the two nodes, from the Laplacian
+        pseudoinverse: treat the graph as an electrical network, so the distance
+        rewards many parallel paths, not just one short one.
+        '''
         # Compute pinv if not already computed
         if not self.initialize_pinv:
             self.initialize_pinv = True
@@ -42,6 +56,9 @@ class BallDistances:
         return eff_res
 
     def dinf_ball_distance(self, source, target):
+        '''
+        Plain shortest-path (hop) distance.
+        '''
         if not self.initialize_sp:
             self.initialize_sp = True
             self.sp_mat = dict(nx.shortest_path_length(self.graph))

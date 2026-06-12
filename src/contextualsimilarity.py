@@ -8,9 +8,15 @@ import time
 from src.exp3 import EXP3
 
 class ContSimInfo:
+    '''
+    "CBSim": contextual bandit with similarity information (zooming-style
+    baseline). Keeps an adaptive cover of the graph by balls, each owning its
+    own EXP3; a ball retires after T_0(radius) pulls and is replaced on demand
+    by half-radius children, so the cover refines where traffic concentrates.
+    '''
     def __init__(self, graph, distance, K, eta_exp3 = None, c_y = 10, d_y = 5,seed = 42):
         """
-        bases_list : list of bases
+        graph, distance : the context space and its (normalized) metric
         K : number of active actions
         """
         # Constants c and d regulating the per-ball budget T_0
@@ -34,7 +40,8 @@ class ContSimInfo:
         
     def predict(self, node_id):
         '''
-        Predict output based on internal state.
+        Find an active ball containing the node -- creating a half-radius child
+        if only retired balls cover it -- and let that ball's EXP3 pick the action.
         '''
         B = None
         for a,r in self.A_star:
@@ -74,6 +81,10 @@ class ContSimInfo:
         return frozenset(res)
     
     def T_0(self, radius):
+        '''
+        Per-ball pull budget before it retires: smaller balls get polynomially
+        more pulls (c * r^-(2+d) * log(1/r)).
+        '''
         return self.c_y * radius **(-(2 + self.d_y)) * np.log(1/radius)
 
 class Distances:
@@ -91,7 +102,9 @@ class Distances:
 def train_cont(graph, T, K_classes, c_y = 10, d_y = 5, eta_exp3 = None, seed = 42, verbose = True, name='ContSim', loss_percentage = 1.0,
                 disable_tqdm_train = False, debug = False):
     '''
-    Train the multi-class-winnow algorithm on the graph, for T time steps, with given bases list
+    Run the similarity baseline for T rounds with 0/1 losses, using shortest-path
+    distance normalized by the graph diameter. Arms are shifted by -1, so with
+    K+1 arms (as in the notebooks) arm 0 plays the role of abstention.
     '''
     temp_pred = 0
     temp_upd = 0
